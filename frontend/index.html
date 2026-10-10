@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GreenBreak AI — Less scrolling. More living.</title>
+    <meta
+      name="description"
+      content="GreenBreak AI builds a simple outdoor break from your time, activity, and adventure level so you can spend less time on screens."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#planner">Skip to activity planner</a>
+
+    <header class="site-header">
+      <nav class="nav" aria-label="Primary">
+        <a class="logo" href="#top">
+          <span class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img" focusable="false">
+              <circle cx="24" cy="24" r="22" fill="#2F5D3A" />
+              <path
+                d="M24 10c6 7 10 12 10 18a10 10 0 0 1-20 0c0-6 4-11 10-18Z"
+                fill="#E8F0D8"
+              />
+              <path d="M24 18v18" stroke="#2F5D3A" stroke-width="2.4" />
+            </svg>
+          </span>
+          <span class="logo-text">GreenBreak AI</span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="#planner">Plan your outdoor break</a></li>
+          <li><a href="#mission">Today's mission</a></li>
+          <li><a href="#progress">Progress</a></li>
+          <li><a href="#about">About</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="leaf leaf-one" aria-hidden="true"></div>
+        <div class="leaf leaf-two" aria-hidden="true"></div>
+        <p class="eyebrow">Touch grass. Keep the peace.</p>
+        <h1>Less scrolling. More living.</h1>
+        <p class="subtitle">
+          A few minutes outside can reset your mind, ease eye strain, and help
+          you notice the world again. GreenBreak AI turns a short outdoor pause
+          into a simple mission — walking, gardening, birdwatching, or exploring
+          nearby nature — so you leave the screen behind on purpose.
+        </p>
+      </section>
+
+      <section id="planner" class="card planner" aria-labelledby="planner-title">
+        <h2 id="planner-title">Plan your outdoor break</h2>
+        <p class="section-lead">
+          Choose how long you have, what you feel like doing, and how bold you
+          want the break to be.
+        </p>
+
+        <form id="generate-form">
+          <fieldset>
+            <legend>Duration</legend>
+            <div class="choice-row duration-choices" role="radiogroup" aria-label="Duration">
+              <label class="choice">
+                <input type="radio" name="duration" value="5" checked />
+                <span>5 minutes</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="duration" value="10" />
+                <span>10 minutes</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="duration" value="15" />
+                <span>15 minutes</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="duration" value="30" />
+                <span>30 minutes</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Activity</legend>
+            <div class="choice-grid" role="radiogroup" aria-label="Activity">
+              <label class="choice">
+                <input type="radio" name="activity" value="Walking" checked />
+                <span>Walking</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="activity" value="Gardening" />
+                <span>Gardening</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="activity" value="Birdwatching" />
+                <span>Birdwatching</span>
+              </label>
+              <label class="choice">
+                <input
+                  type="radio"
+                  name="activity"
+                  value="Nature Exploration"
+                />
+                <span>Exploring nearby nature</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Adventure level</legend>
+            <div class="choice-row" role="radiogroup" aria-label="Adventure level">
+              <label class="choice">
+                <input type="radio" name="difficulty" value="Gentle" checked />
+                <span>Gentle</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="difficulty" value="Moderate" />
+                <span>Moderate</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="difficulty" value="Adventurous" />
+                <span>Adventurous</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <button class="primary-button" type="submit" id="generate-button">
+            Generate My Break Plan
+          </button>
+        </form>
+
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section
+        id="activity"
+        class="card activity-card"
+        aria-labelledby="activity-title"
+        hidden
+      >
+        <p class="eyebrow">Your break plan</p>
+        <h2 id="activity-title"></h2>
+        <p id="activity-duration" class="plan-duration"></p>
+        <p id="activity-description" class="activity-description"></p>
+
+        <h3>Instructions</h3>
+        <ol id="checklist" class="instructions"></ol>
+        <p id="activity-tip" class="plan-tip"></p>
+        <div class="break-actions">
+          <button class="primary-button" type="button" id="complete-break">
+            Mark Break Complete
+          </button>
+          <p id="break-complete-status" class="status break-feedback" role="status" aria-live="polite" hidden></p>
+        </div>
+      </section>
+
+      <section id="mission" class="card mission-card" aria-labelledby="mission-heading">
+        <p class="eyebrow">Today's mission</p>
+        <h2 id="mission-heading">Today's outdoor mission</h2>
+        <p id="mission-state" class="mission-state">Not completed</p>
+        <h3 id="mission-title"></h3>
+        <p id="mission-duration" class="plan-duration"></p>
+        <p id="mission-description" class="activity-description"></p>
+        <h3>Instructions</h3>
+        <ol id="mission-steps" class="instructions"></ol>
+        <div class="mission-actions">
+          <button class="primary-button" type="button" id="complete-mission">
+            Complete Mission
+          </button>
+          <div class="mission-action-row">
+            <button class="secondary-button" type="button" id="another-mission">
+              Start another mission
+            </button>
+            <button class="text-button" type="button" id="reset-mission">
+              Reset today's mission
+            </button>
+          </div>
+        </div>
+        <p id="mission-status" class="status mission-feedback" role="status" aria-live="polite" hidden></p>
+      </section>
+
+      <section id="progress" class="card progress-card" aria-labelledby="progress-heading">
+        <p class="eyebrow">Keep going outside</p>
+        <h2 id="progress-heading">Your progress</h2>
+        <p class="section-lead">
+          Completed missions and break plans are saved on this device.
+        </p>
+        <dl class="progress-stats">
+          <div class="progress-stat">
+            <dt>Missions completed</dt>
+            <dd id="mission-count">0</dd>
+          </div>
+          <div class="progress-stat">
+            <dt>Breaks completed</dt>
+            <dd id="break-count">0</dd>
+          </div>
+        </dl>
+        <p id="progress-empty" class="progress-empty">
+          Nothing completed yet. Finish today's mission or mark a break plan
+          complete, and it will show up here.
+        </p>
+      </section>
+    </main>
+
+    <footer id="about" class="site-footer">
+      <div class="footer-card">
+        <h2>Open-weight AI, running locally</h2>
+        <p>
+          GreenBreak AI builds each break on your computer from outdoor activity
+          templates. Nothing is sent to a paid AI API.
+        </p>
+        <p>
+          Built for Hacktoberfest 2026 DEV Community Week 1: Touch Grass.
+        </p>
+      </div>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

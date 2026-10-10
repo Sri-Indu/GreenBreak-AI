@@ -1,0 +1,1 @@
+"""GreenBreak AI backend package."""
