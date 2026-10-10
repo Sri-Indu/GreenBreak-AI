@@ -6,6 +6,8 @@ GreenBreak AI is a small local website that helps you step away from a screen fo
 
 It was built for Hacktoberfest 2026 DEV Community Week 1: **Touch Grass**.
 
+Break plans come from predefined templates on your computer. The app does not call a live AI model, and it does not need a paid AI API or an API key.
+
 ## The problem
 
 Short breaks are easy to spend scrolling. GreenBreak AI makes the outdoor option the default: a concrete plan, a daily mission, and a record of what you actually finished.
@@ -47,20 +49,31 @@ Short breaks are easy to spend scrolling. GreenBreak AI makes the outdoor option
 - Navigation to **Plan your outdoor break**, **Today's mission**, **Progress**, and **About**.
 - Layouts that stack on a narrow screen, with visible keyboard focus.
 
-### Local generation
+## How plans are generated
 
-Break plans are filled in on your computer from predefined templates in `backend/activity_service.py`. The browser sends your choices only to the local FastAPI app. No paid AI API and no API key are required.
+Break plans are filled in on your computer from predefined templates in `backend/activity_service.py`. The browser sends your duration, activity, and adventure level only to the local FastAPI app.
+
+No paid AI API and no API key are required. Plan text is not produced by a live model.
+
+`backend/ollama_client.py` is still in the repository from an earlier experiment. The running site does not use it to generate plans.
 
 ## Screenshots
 
-Screenshots are not in the repository yet. Add image files under a folder such as `docs/` and replace the placeholders below.
+Landing page and the break planner.
 
-| Screen | Placeholder |
-| --- | --- |
-| Landing page and break planner | `![Break planner](docs/planner.png)` |
-| Generated break plan | `![Generated break plan](docs/break-plan.png)` |
-| Today's mission | `![Today's mission](docs/mission.png)` |
-| Progress | `![Progress](docs/progress.png)` |
+![Landing page with the outdoor break planner, showing duration, activity, and adventure choices](docs/planner.png)
+
+A generated break plan, with steps, a tip, and **Mark Break Complete**.
+
+![Generated 15-minute gentle garden pause, with numbered instructions and a completion message](docs/break-plan.png)
+
+Today's outdoor mission, with complete, switch, and reset actions.
+
+![Today's outdoor mission card for a short nature walk, marked not completed](docs/mission.png)
+
+Progress totals saved on this device.
+
+![Progress screen showing 3 missions completed and 2 breaks completed](docs/Progress.png)
 
 ## Technology stack
 
@@ -74,8 +87,6 @@ Screenshots are not in the repository yet. Add image files under a folder such a
 
 There is no `package.json` and no `pyproject.toml`. Python dependencies are pinned in `requirements.txt`.
 
-`backend/ollama_client.py` is still in the repository from an earlier experiment. The running site does not use it to generate plans.
-
 ## Project structure
 
 ```text
@@ -86,6 +97,11 @@ GreenBreak/
 │   ├── activity_service.py  # Local break-plan templates
 │   ├── schemas.py           # Request and response models
 │   └── ollama_client.py     # Unused by the current planner
+├── docs/
+│   ├── planner.png
+│   ├── break-plan.png
+│   ├── mission.png
+│   └── Progress.png
 ├── frontend/
 │   ├── index.html
 │   ├── styles.css
@@ -132,7 +148,7 @@ Leave that terminal open while you use the site. Stopping the command stops the 
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
-The app is for local use. It is not deployed and is not set up as a production server.
+The app is for local use. It is not deployed yet, and it is not set up as a production server.
 
 Useful routes:
 
@@ -190,7 +206,6 @@ Clearing site data for `127.0.0.1` removes that history. A new browser profile s
 
 ## Possible next steps
 
-- Add the screenshots listed above.
 - Grow the mission and break-plan templates.
 - Decide whether `backend/ollama_client.py` should be removed or kept for a future optional local model.
 
