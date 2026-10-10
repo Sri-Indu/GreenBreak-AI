@@ -140,6 +140,7 @@
         hidden
       >
         <p class="eyebrow">Your break plan</p>
+        <p id="activity-notice" class="plan-notice" hidden></p>
         <h2 id="activity-title"></h2>
         <p id="activity-duration" class="plan-duration"></p>
         <p id="activity-description" class="activity-description"></p>
@@ -207,8 +208,9 @@
       <div class="footer-card">
         <h2>Open-weight AI, running locally</h2>
         <p>
-          GreenBreak AI builds each break on your computer from outdoor activity
-          templates. Nothing is sent to a paid AI API.
+          GreenBreak AI asks gemma2:2b, a local Gemma 2 model, through Ollama
+          on this computer. If that model cannot return a valid plan, the app
+          uses a built-in template and says so. Nothing is sent to a paid AI API.
         </p>
         <p>
           Built for Hacktoberfest 2026 DEV Community Week 1: Touch Grass.

@@ -2,6 +2,7 @@ const form = document.getElementById("generate-form");
 const generateButton = document.getElementById("generate-button");
 const statusEl = document.getElementById("status");
 const activitySection = document.getElementById("activity");
+const activityNoticeEl = document.getElementById("activity-notice");
 const titleEl = document.getElementById("activity-title");
 const durationEl = document.getElementById("activity-duration");
 const descriptionEl = document.getElementById("activity-description");
@@ -108,6 +109,13 @@ function renderActivity(activity) {
   completeBreakButton.disabled = false;
   completeBreakButton.setAttribute("aria-disabled", "false");
   setBreakMessage("");
+  const fallbackNotice =
+    activity.source === "template-fallback"
+      ? readableText(activity.notice) ||
+        "This plan came from the built-in templates, not from the local model."
+      : "";
+  activityNoticeEl.textContent = fallbackNotice;
+  activityNoticeEl.hidden = !fallbackNotice;
 
   activity.steps.forEach((step) => {
     const item = document.createElement("li");
@@ -169,7 +177,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   generateButton.disabled = true;
-  setStatus("Creating your outdoor break plan...");
+  setStatus("Asking the local model for your outdoor break plan...");
 
   try {
     const response = await fetch("/api/generate", {
@@ -197,7 +205,14 @@ form.addEventListener("submit", async (event) => {
     }
 
     renderActivity(data);
-    setStatus("Your break plan is ready. Step outside when you can.");
+    if (data.source === "template-fallback") {
+      setStatus(
+        activityNoticeEl.textContent ||
+          "This plan came from the built-in templates, not from the local model."
+      );
+    } else {
+      setStatus("Your break plan is ready. Step outside when you can.");
+    }
   } catch (error) {
     activitySection.hidden = true;
     currentPlan = null;

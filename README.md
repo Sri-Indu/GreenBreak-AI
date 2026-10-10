@@ -6,7 +6,7 @@ GreenBreak AI is a small local website that helps you step away from a screen fo
 
 It was built for Hacktoberfest 2026 DEV Community Week 1: **Touch Grass**.
 
-Break plans come from predefined templates on your computer. The app does not call a live AI model, and it does not need a paid AI API or an API key.
+Break plans are written on your computer by `gemma2:2b`, a local Gemma 2 model served by [Ollama](https://ollama.com). The app does not call a paid AI API and does not need an API key. Predefined templates are used only when Ollama cannot return a valid plan, and the page says so.
 
 ## The problem
 
@@ -14,7 +14,7 @@ Short breaks are easy to spend scrolling. GreenBreak AI makes the outdoor option
 
 ## Goals
 
-- Offer a break you can start without an account or a paid AI service.
+- Offer a break you can start without an account, a paid AI service, or a cloud model.
 - Keep the plan specific: a title, steps, a duration, and a tip.
 - Give the day one outdoor mission, with a way to finish it or choose another.
 - Remember completed missions and break plans in the browser.
@@ -51,11 +51,30 @@ Short breaks are easy to spend scrolling. GreenBreak AI makes the outdoor option
 
 ## How plans are generated
 
-Break plans are filled in on your computer from predefined templates in `backend/activity_service.py`. The browser sends your duration, activity, and adventure level only to the local FastAPI app.
+The normal path is local model generation.
 
-No paid AI API and no API key are required. Plan text is not produced by a live model.
+1. The browser sends your duration, activity, and adventure level only to the FastAPI app on this computer.
+2. FastAPI validates that request with Pydantic, then asks Ollama at `http://127.0.0.1:11434/api/chat` for one JSON break plan.
+3. The request uses the model `gemma2:2b`, `stream: false`, and `format: json`. The server sets `duration_minutes` from your selection.
+4. The JSON is accepted only when it validates as `ActivityResponse` in `backend/schemas.py`.
+5. The browser inserts the title, description, steps, tip, and any fallback notice with `textContent`. Model text is never treated as HTML.
 
-`backend/ollama_client.py` is still in the repository from an earlier experiment. The running site does not use it to generate plans.
+If Ollama cannot be reached, times out, returns an HTTP error, or returns JSON that fails validation, `backend/activity_service.py` supplies the matching predefined template. That response has `source: "template-fallback"` and a `notice` explaining that the local model did not write the plan. A successful model response has `source: "model"` and no notice.
+
+No paid AI API and no API key are required.
+
+### Model and license
+
+| | |
+| --- | --- |
+| Ollama tag | `gemma2:2b` |
+| Model | Gemma 2 2B (about 2.6 billion parameters, Q4_0 quantization in this local install) |
+| Weights | Open-weight. The weights can be downloaded and run locally. |
+| License | [Gemma Terms of Use](https://ai.google.dev/gemma/terms), last modified February 21, 2024. Confirmed from the license text shipped with the local `gemma2:2b` model. |
+
+The Gemma Terms of Use are not an OSI-approved open-source license. They allow use under those terms and include a prohibited-use policy. This project does not describe Gemma as open source.
+
+`OLLAMA_URL` and `OLLAMA_MODEL` can override the local address and model tag. The default model is `gemma2:2b`. This project does not download another model.
 
 ## Screenshots
 
@@ -83,7 +102,8 @@ Progress totals saved on this device.
 | Validation | [Pydantic](https://docs.pydantic.dev/) |
 | Frontend | HTML, CSS, and JavaScript. No frontend framework and no build step. |
 | Tests | [pytest](https://docs.pytest.org/) with FastAPI's `TestClient` |
-| HTTP client library | `httpx` is listed in `requirements.txt`. The current break planner does not call an external service. |
+| Local model | [Ollama](https://ollama.com/) serving `gemma2:2b` on `127.0.0.1:11434` |
+| HTTP client library | `httpx`, already listed in `requirements.txt`, calls Ollama's local HTTP API |
 
 There is no `package.json` and no `pyproject.toml`. Python dependencies are pinned in `requirements.txt`.
 
@@ -94,9 +114,9 @@ GreenBreak/
 ├── backend/
 │   ├── __init__.py
 │   ├── main.py              # FastAPI app and static file routes
-│   ├── activity_service.py  # Local break-plan templates
+│   ├── activity_service.py  # Template fallback plans
 │   ├── schemas.py           # Request and response models
-│   └── ollama_client.py     # Unused by the current planner
+│   └── ollama_client.py     # Local Ollama HTTP client for gemma2:2b
 ├── docs/
 │   ├── planner.png
 │   ├── break-plan.png
@@ -118,6 +138,7 @@ GreenBreak/
 ## Prerequisites
 
 - Python 3.10 or newer (`str | None` is used in the backend).
+- [Ollama](https://ollama.com/download) for the local model. The tested setup is Ollama 0.40.2 with `gemma2:2b` already pulled.
 - Node.js, only if you want the JavaScript syntax check. The website itself does not need Node.
 
 ## Installation
@@ -135,6 +156,15 @@ If activation is blocked, run this once in that PowerShell window, then activate
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
+
+Install Ollama, then pull the model this app expects. Skip the pull if `ollama list` already shows `gemma2:2b`.
+
+```powershell
+ollama pull gemma2:2b
+ollama serve
+```
+
+`ollama serve` is only needed when the Ollama app is not already running. On Windows, the Ollama desktop app usually starts the local server for you. The model stays on this computer. Nothing in the app calls a paid or cloud model API.
 
 ## Run the app locally
 
@@ -155,8 +185,8 @@ Useful routes:
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/` | The website |
-| `GET` | `/api/health` | Reports that local templates are available |
-| `POST` | `/api/generate` | Builds a break plan from the selected options |
+| `GET` | `/api/health` | Reports whether local `gemma2:2b` is available |
+| `POST` | `/api/generate` | Asks the local model for a break plan. Uses a template only as a labeled fallback |
 
 ## How to use it
 
@@ -176,7 +206,7 @@ Automated tests, from the project folder with the virtual environment activated:
 python -m pytest
 ```
 
-`pytest.ini` adds the project root to the Python path and collects tests from `tests/`. The tests cover request validation, template plans, and the pages the server returns. They do not open a browser.
+`pytest.ini` adds the project root to the Python path and collects tests from `tests/`. The tests cover request validation, template plans, and the pages the server returns. Ollama calls are mocked with a fake HTTP client, so the suite does not need Ollama installed or running. They do not open a browser.
 
 JavaScript syntax check:
 
@@ -197,8 +227,10 @@ Clearing site data for `127.0.0.1` removes that history. A new browser profile s
 
 ## Privacy and limitations
 
-- Plan text comes from templates shipped with the app, not from a live model.
-- Your selected duration, activity, and adventure level are sent only to the FastAPI process on your machine.
+- The model runs locally through Ollama. Duration, activity, and adventure level are sent only to the FastAPI process and then to `127.0.0.1:11434`. They are not sent to a cloud AI service.
+- `gemma2:2b` is a small model. Plans can be generic, repetitive, or a poor fit. The app discards a response that is not valid JSON or does not match `ActivityResponse`, then shows a template instead.
+- A template plan is a fallback. The response and the page both say the local model did not write it.
+- Generation waits up to 90 seconds, with a 5-second connection timeout. Checking which models are installed waits 5 seconds. A cold model load can be slow.
 - Mission completion and progress never leave the browser except as `localStorage` on that computer.
 - The same break plan cannot be counted twice. Refreshing the page does not add a count.
 - Resetting today's mission lets you complete that mission again, which adds one to the mission total. Earlier totals stay.
@@ -206,8 +238,7 @@ Clearing site data for `127.0.0.1` removes that history. A new browser profile s
 
 ## Possible next steps
 
-- Grow the mission and break-plan templates.
-- Decide whether `backend/ollama_client.py` should be removed or kept for a future optional local model.
+- Grow the mission list and the template fallback plans.
 
 ## Hacktoberfest
 

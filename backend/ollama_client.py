@@ -1,13 +1,18 @@
-"""Talk to a local Gemma model through Ollama."""
+"""Talk to a local open-weight model through Ollama's HTTP API."""
 
 import json
 import os
 from typing import Any
 
 import httpx
+from pydantic import ValidationError
+
+from backend.schemas import ActivityResponse, GenerateRequest
 
 DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
-DEFAULT_MODEL = "gemma2"
+DEFAULT_MODEL = "gemma2:2b"
+TAGS_TIMEOUT_SECONDS = 5.0
+GENERATE_TIMEOUT = httpx.Timeout(90.0, connect=5.0)
 
 
 class OllamaError(Exception):
@@ -57,9 +62,26 @@ def _connection_hint() -> str:
     )
 
 
+def build_break_prompt(request: GenerateRequest) -> str:
+    """Ask the local model for one structured outdoor break."""
+    return (
+        "Create one personalized outdoor break plan.\n"
+        f"Duration: {request.duration_minutes} minutes.\n"
+        f"Activity: {request.activity_type}.\n"
+        f"Adventure level: {request.difficulty}.\n"
+        "Return a JSON object with exactly these keys: title, description, steps, tip.\n"
+        "title is a short plain-text name.\n"
+        "description is one or two plain-text sentences.\n"
+        "steps is an array of 3 to 5 plain-text instructions a person can do outdoors near home.\n"
+        "tip is one short plain-text suggestion.\n"
+        "Do not use HTML, markdown, or code fences.\n"
+        "Keep the plan safe, realistic, and specific to the duration, activity, and adventure level."
+    )
+
+
 async def list_model_names() -> list[str]:
     url = f"{get_ollama_url()}/api/tags"
-    async with httpx.AsyncClient(timeout=5.0) as client:
+    async with httpx.AsyncClient(timeout=TAGS_TIMEOUT_SECONDS) as client:
         response = await client.get(url)
         response.raise_for_status()
     return [item.get("name", "") for item in response.json().get("models", [])]
@@ -71,7 +93,7 @@ async def resolve_model_name() -> str:
         names = await list_model_names()
     except httpx.RequestError as exc:
         raise OllamaError(
-            "Could not reach the local Gemma model through Ollama.",
+            "Could not reach the local model through Ollama.",
             hint=_connection_hint(),
         ) from exc
     except httpx.HTTPStatusError as exc:
@@ -90,38 +112,40 @@ async def resolve_model_name() -> str:
 
 
 async def check_ollama() -> dict[str, Any]:
-    """Return whether Ollama is reachable and a matching Gemma model exists."""
+    """Return whether Ollama is reachable and the selected model is installed."""
+    requested = get_model_name()
     try:
         names = await list_model_names()
     except httpx.RequestError:
         return {
             "available": False,
             "model_found": False,
+            "model": requested,
             "message": "Ollama is not running on this computer.",
         }
     except httpx.HTTPStatusError:
         return {
             "available": False,
             "model_found": False,
+            "model": requested,
             "message": "Ollama responded with an unexpected error.",
         }
 
-    resolved = pick_installed_model(get_model_name(), names)
+    resolved = pick_installed_model(requested, names)
     if resolved:
         message = f"Ollama is ready with {resolved}."
     else:
-        message = (
-            f"Ollama is running, but the {get_model_name()} model is not installed."
-        )
+        message = f"Ollama is running, but the {requested} model is not installed."
     return {
         "available": True,
         "model_found": bool(resolved),
+        "model": resolved or requested,
         "message": message,
     }
 
 
 async def generate_json(prompt: str) -> dict[str, Any]:
-    """Ask Gemma for a JSON activity. Never returns a fake example."""
+    """Ask the local model for a JSON object. Never returns a fake example."""
     model = await resolve_model_name()
     payload = {
         "model": model,
@@ -131,8 +155,8 @@ async def generate_json(prompt: str) -> dict[str, Any]:
             {
                 "role": "system",
                 "content": (
-                    "You are GreenBreak AI, a friendly outdoor-break coach. "
-                    "Reply with JSON only. Do not include markdown."
+                    "You are GreenBreak AI, a local outdoor-break coach. "
+                    "Reply with one JSON object only. Do not include markdown or HTML."
                 ),
             },
             {"role": "user", "content": prompt},
@@ -141,14 +165,14 @@ async def generate_json(prompt: str) -> dict[str, Any]:
     }
 
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=GENERATE_TIMEOUT) as client:
             response = await client.post(
                 f"{get_ollama_url()}/api/chat",
                 json=payload,
             )
     except httpx.RequestError as exc:
         raise OllamaError(
-            "Could not reach the local Gemma model through Ollama.",
+            "Could not reach the local model through Ollama.",
             hint=_connection_hint(),
         ) from exc
 
@@ -159,8 +183,8 @@ async def generate_json(prompt: str) -> dict[str, Any]:
         )
     if response.status_code >= 400:
         raise OllamaError(
-            "Ollama could not generate an activity right now.",
-            hint="Check that Ollama is running and the Gemma model finished loading.",
+            "Ollama could not generate a break plan right now.",
+            hint="Check that Ollama is running and the model finished loading.",
         )
 
     try:
@@ -169,13 +193,30 @@ async def generate_json(prompt: str) -> dict[str, Any]:
         parsed = json.loads(content)
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
         raise OllamaError(
-            "Gemma returned a response that was not valid JSON.",
+            "The local model returned a response that was not valid JSON.",
             hint="Try generating again. If this continues, restart Ollama.",
         ) from exc
 
     if not isinstance(parsed, dict):
         raise OllamaError(
-            "Gemma returned JSON that was not an activity object.",
+            "The local model returned JSON that was not a break plan.",
             hint="Try generating again with the same options.",
         )
     return parsed
+
+
+async def generate_activity_plan(request: GenerateRequest) -> ActivityResponse:
+    """Generate one break plan and accept it only if it matches ActivityResponse."""
+    parsed = await generate_json(build_break_prompt(request))
+    payload = dict(parsed)
+    payload.pop("notice", None)
+    payload["duration_minutes"] = request.duration_minutes
+    payload["source"] = "model"
+    payload["notice"] = None
+    try:
+        return ActivityResponse.model_validate(payload)
+    except ValidationError as exc:
+        raise OllamaError(
+            "The local model returned a break plan that did not match the required format.",
+            hint="A built-in template will be used instead.",
+        ) from exc

@@ -487,6 +487,17 @@ legend {
   color: var(--forest);
 }
 
+.plan-notice {
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  background: #fff8e8;
+  border-left: 4px solid #8a6a2f;
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  margin: 0 0 1rem;
+  color: var(--ink);
+}
+
 .plan-duration {
   font-family: system-ui, sans-serif;
   font-weight: 700;

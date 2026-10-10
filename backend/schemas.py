@@ -30,6 +30,8 @@ class ActivityResponse(BaseModel):
     steps: list[str] = Field(min_length=3, max_length=5)
     duration_minutes: DurationMinutes
     tip: str = Field(min_length=8, max_length=280)
+    source: Literal["model", "template-fallback"] = "template-fallback"
+    notice: str | None = None
 
     @field_validator("title", "description", "tip")
     @classmethod
